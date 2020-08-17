@@ -1,3 +1,5 @@
+using DataTools.Common;
+using Newtonsoft.Json.Linq;
 using OfficeOpenXml;
 using OfficeOpenXml.Style;
 using System;
@@ -9,7 +11,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 
-namespace DataTools.Common
+namespace  DataTableTest
 {
     /// <summary>
     /// EPPlus公用帮助类（导入导出时，如需改变表头文字，在相应属性上使用Description特性来描述文字）
@@ -17,7 +19,68 @@ namespace DataTools.Common
     public class EPPlusCommon
     {
 
-        #region 由List创建简单Exel.列头取属性的Description或属性名
+        #region 由JArray/List创建简单Exel.列头取属性的Description或属性名
+
+
+        /// <summary>
+        /// （单个索引页）由JArray创建简单Exel.列头取T属性的Description或属性名 单个索引页
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="filePath">The file path.</param>
+        /// <param name="dataList">The data list.</param>
+        /// <param name="sheetName">索引页名称</param>
+        public static void CreateExcelByJarry(string filePath, List<JObject> dataList, List<string> descriptions, string sheetName = "sheet1")  
+        {
+
+            string dirPath = Path.GetDirectoryName(filePath);
+            if (!Directory.Exists(dirPath))
+            {
+                Directory.CreateDirectory(dirPath);
+            }
+            string fileName = Path.GetFileName(filePath);
+            FileInfo newFile = new FileInfo(filePath);
+            if (newFile.Exists)
+            {
+                newFile.Delete();
+                newFile = new FileInfo(filePath);
+            }
+
+            PropertyInfo[] properties = null;
+            if (dataList.Count > 0)
+            {
+              
+                using (ExcelPackage package = new ExcelPackage(newFile))
+                {
+                    ExcelWorksheet worksheet = package.Workbook.Worksheets.Add(sheetName);
+                    SetExcelWorksheetStyle(worksheet, descriptions.Count);
+                    int row = 1, col;
+                    object objColValue;
+                    //表头
+                    for (int j = 0; j < descriptions.Count; j++)
+                    {
+                        row = 1;
+                        col = j + 1;
+                        var description = descriptions.ToArray()[j];
+                        worksheet.Cells[row, col].Value = description;
+                    }
+                    worksheet.View.FreezePanes(row + 1, 1); //冻结表头
+                    //各行数据
+                    for (int i = 0; i < dataList.Count; i++)
+                    {
+                        row = i + 2;
+                        for (int j = 0; j < descriptions.Count; j++)
+                        {
+                            col = j + 1;
+                            objColValue = ((JObject)dataList[i]).Value<string>(descriptions[j]);
+                            ListSetValueByType(worksheet, row, col, objColValue);
+                        }
+                    }
+                    package.Save();
+                }
+
+            }
+        }
+
         /// <summary>
         /// （单个索引页）由List创建简单Exel.列头取T属性的Description或属性名 单个索引页
         /// </summary>
@@ -303,7 +366,7 @@ namespace DataTools.Common
         /// <param name="sheetIndex">索引页</param>
         /// <param name="sheetNameName">索引页名称</param>
         /// <returns></returns>
-        public static void ContinueWriteExcelByByte(string filePath, Dictionary<string, object> dataDic, int sheetIndex = 0, string sheetNameName = null)
+        public static void ContinueWriteExcelByFile(string filePath, Dictionary<string, object> dataDic, int sheetIndex = 0, string sheetNameName = null)
         {
             FileInfo newFile = new FileInfo(filePath);
 
@@ -445,7 +508,7 @@ namespace DataTools.Common
         /// <param name="item">值</param>
         public static void DictionarySetValueByType(ExcelWorksheet worksheet, KeyValuePair<string, object> item)
         {
-
+            
             switch (GetValueByType(item.Value))
             {
                 case TypeEnum.Int:
@@ -493,7 +556,11 @@ namespace DataTools.Common
         /// <param name="colValue">值</param>
         public static void ListSetValueByType(ExcelWorksheet worksheet, int row, int col, object colValue)
         {
-
+            if (colValue == null)
+            {
+                worksheet.Cells[row, col].Value = "";
+                return;
+            }
             switch (GetValueByType(colValue))
             {
                 case TypeEnum.Int:
@@ -542,19 +609,19 @@ namespace DataTools.Common
         /// <param name="length">表头长度</param>
         public static void SetExcelWorksheetStyle(ExcelWorksheet worksheet, int length)
         {
-            worksheet.DefaultColWidth = 25; //默认列宽
-                                            // worksheet.DefaultRowHeight = 10; //默认行高
-            worksheet.TabColor = Color.Blue; //Sheet Tab的颜色
-            worksheet.Cells.Style.WrapText = true; //单元格文字自动换行
+            //worksheet.DefaultColWidth = 25; //默认列宽
+            //                                // worksheet.DefaultRowHeight = 10; //默认行高
+            //worksheet.TabColor = Color.Blue; //Sheet Tab的颜色
+            //worksheet.Cells.Style.WrapText = true; //单元格文字自动换行
 
             //设置表头单元格格式
-            using (var range = worksheet.Cells[1, 1, 1, length])
-            {
-                range.Style.Font.Bold = true;
-                range.Style.Fill.PatternType = ExcelFillStyle.Solid;
-                range.Style.Fill.BackgroundColor.SetColor(Color.DarkBlue);
-                range.Style.Font.Color.SetColor(Color.White);
-            }
+            //using (var range = worksheet.Cells[1, 1, 1, length])
+            //{
+            //    range.Style.Font.Bold = true;
+            //    range.Style.Fill.PatternType = ExcelFillStyle.Solid;
+            //    range.Style.Fill.BackgroundColor.SetColor(Color.DarkBlue);
+            //    range.Style.Font.Color.SetColor(Color.White);
+            //}
 
             //设置指定行或列的样式(宽、高、隐藏、自动换行、数字格式、锁定等)：
 
@@ -580,6 +647,11 @@ namespace DataTools.Common
         /// <returns></returns>
         public static TypeEnum GetValueByType(object value)
         {
+            if (value==null)
+            {
+                return TypeEnum.String;
+
+            }
             Type type = value.GetType();
             if (type == typeof(int))
                 return TypeEnum.Int;
