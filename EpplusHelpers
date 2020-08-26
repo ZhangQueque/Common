@@ -11,7 +11,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 
-namespace  DataTableTest
+namespace DataTools.Common
 {
     /// <summary>
     /// EPPlus公用帮助类（导入导出时，如需改变表头文字，在相应属性上使用Description特性来描述文字）
@@ -29,7 +29,7 @@ namespace  DataTableTest
         /// <param name="filePath">The file path.</param>
         /// <param name="dataList">The data list.</param>
         /// <param name="sheetName">索引页名称</param>
-        public static void CreateExcelByJarry(string filePath, List<JObject> dataList, List<string> descriptions, string sheetName = "sheet1")  
+        public static void CreateExcelByJarry(string filePath, List<JObject> dataList, List<string> descriptions, string sheetName = "sheet1")
         {
 
             string dirPath = Path.GetDirectoryName(filePath);
@@ -48,7 +48,7 @@ namespace  DataTableTest
             PropertyInfo[] properties = null;
             if (dataList.Count > 0)
             {
-              
+
                 using (ExcelPackage package = new ExcelPackage(newFile))
                 {
                     ExcelWorksheet worksheet = package.Workbook.Worksheets.Add(sheetName);
@@ -116,13 +116,13 @@ namespace  DataTableTest
                     SetExcelWorksheetStyle(worksheet, properties.Length);
                     int row = 1, col;
                     object objColValue;
-                     //表头
+                    //表头
                     for (int j = 0; j < properties.Length; j++)
                     {
                         row = 1;
                         col = j + 1;
                         var description = filedDescriptions.Where(o => o.Key == properties[j].Name).Select(o => o.Value).FirstOrDefault();
-                        worksheet.Cells[row, col].Value = description; 
+                        worksheet.Cells[row, col].Value = description;
                     }
                     worksheet.View.FreezePanes(row + 1, 1); //冻结表头
                     //各行数据
@@ -134,9 +134,9 @@ namespace  DataTableTest
                             col = j + 1;
                             objColValue = properties[j].GetValue(dataList[i], null);
                             ListSetValueByType(worksheet, row, col, objColValue);
-                         }
+                        }
                     }
-                     package.Save();
+                    package.Save();
                 }
 
             }
@@ -178,13 +178,13 @@ namespace  DataTableTest
 
                     int row = 1, col;
                     object objColValue;
-                     //表头
+                    //表头
                     for (int j = 0; j < properties.Length; j++)
                     {
                         row = 1;
                         col = j + 1;
                         var description = filedDescriptions.Where(o => o.Key == properties[j].Name).Select(o => o.Value).FirstOrDefault();
-                        
+
                         worksheet.Cells[row, col].Value = description;
                     }
                     worksheet.View.FreezePanes(row + 1, 1); //冻结表头
@@ -201,7 +201,7 @@ namespace  DataTableTest
                         }
                     }
                 }
-                  package.Save();
+                package.Save();
             }
 
 
@@ -261,9 +261,9 @@ namespace  DataTableTest
                     //各行数据
                     foreach (var item in dataDic)
                     {
-                        DictionarySetValueByType(worksheet,item);                  
+                        DictionarySetValueByType(worksheet, item);
                     }
-                      package.Save();
+                    package.Save();
                 }
             }
         }
@@ -325,7 +325,7 @@ namespace  DataTableTest
                     }
                     i++;
                 }
-                  package.Save();
+                package.Save();
             }
         }
         #endregion
@@ -339,7 +339,7 @@ namespace  DataTableTest
         /// <param name="sheetIndex">索引页</param>
         /// <param name="sheetNameName">索引页名称</param>
         /// <returns></returns>
-        public static  byte[]  ContinueWriteExcelByByte(byte[] bytes, Dictionary<string, object> dataDic, int sheetIndex = 0, string sheetNameName = null)
+        public static byte[] ContinueWriteExcelByByte(byte[] bytes, Dictionary<string, object> dataDic, int sheetIndex = 0, string sheetNameName = null)
         {
             using (var stream = new MemoryStream())
             {
@@ -351,7 +351,7 @@ namespace  DataTableTest
                     {
                         DictionarySetValueByType(excelWorksheet, item);
                     }
-                      package.SaveAs(stream);
+                    package.SaveAs(stream);
                     return stream.ToArray();
                 }
             }
@@ -379,7 +379,30 @@ namespace  DataTableTest
                 {
                     DictionarySetValueByType(excelWorksheet, item);
                 }
-                  package.Save();
+                package.Save();
+            }
+        }
+
+
+        public static byte[] ContinueWriteExcelByFileReturnByte(string filePath, Dictionary<string, object> dataDic, int sheetIndex = 0, string sheetNameName = null)
+        {
+            FileInfo newFile = new FileInfo(filePath);
+            using (var stream = new MemoryStream())
+            {
+
+
+                using (ExcelPackage package = new ExcelPackage(newFile))
+                {
+                    var excelWorksheet = package.Workbook.Worksheets[sheetIndex];
+                    excelWorksheet.Name = sheetNameName ?? sheetNameName;
+
+                    foreach (var item in dataDic)
+                    {
+                        DictionarySetValueByType(excelWorksheet, item);
+                    }
+                    package.SaveAs(stream);
+                }
+                return stream.ToArray();
             }
         }
 
@@ -412,7 +435,7 @@ namespace  DataTableTest
         /// <typeparam name="T">每行数据的类型</typeparam>
         /// <param name="FileName">Excel文件名</param>
         /// <returns>泛型列表</returns>
-        public static IEnumerable<T> GetListFromExcel<T>(FileInfo existingFile) where T : new()
+        public static IEnumerable<T> GetListByExcel<T>(FileInfo existingFile) where T : new()
         {
             //FileInfo existingFile = new FileInfo(FileName);//如果本地地址可以直接使用本方法，这里是直接拿到了文件
             List<T> resultList = new List<T>();
@@ -508,7 +531,7 @@ namespace  DataTableTest
         /// <param name="item">值</param>
         public static void DictionarySetValueByType(ExcelWorksheet worksheet, KeyValuePair<string, object> item)
         {
-            
+
             switch (GetValueByType(item.Value))
             {
                 case TypeEnum.Int:
@@ -647,7 +670,7 @@ namespace  DataTableTest
         /// <returns></returns>
         public static TypeEnum GetValueByType(object value)
         {
-            if (value==null)
+            if (value == null)
             {
                 return TypeEnum.String;
 
@@ -680,7 +703,7 @@ namespace  DataTableTest
     /// </summary>
     public class MyFormula
     {
-        public MyFormula(string  formula)
+        public MyFormula(string formula)
         {
             Formula = formula;
         }
