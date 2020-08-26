@@ -1,0 +1,65 @@
+      /// <summary>
+        /// 获取索引页所需的  （地址-值字典）内存
+        /// </summary>
+        /// <param name="configs">索引页对应的配置文件集合</param>
+        /// <param name="startTime">开始时间</param>
+        /// <param name="endTime">结束时间</param>
+        /// <returns></returns>
+        public async Task<Dictionary<string, object>> GetDicDataAsync(IEnumerable<UploadEccoWeekConfigDto> configs, DateTime startTime, DateTime endTime)
+        {
+            Dictionary<string, object> dic = new Dictionary<string, object>();
+            foreach (var config in configs)
+            {
+                if (config.ContentType == 1)
+                {
+                    var value = config.DbType == 0 ? (await _sqlserver.GetValueAsync(config.Content, startTime, endTime)) : (await _mysql.GetValueAsync(config.Content, startTime, endTime));
+                    dic.Add(config.Address, value.ToDecimal());
+                }
+                else if (config.ContentType == 2)
+                {
+                    DataTable table = config.DbType == 0 ? (await _sqlserver.GetListAsync(config.Content, startTime, endTime)) : (await _mysql.GetListAsync(config.Content, startTime, endTime));
+
+                    string beginAddress = config.Address;
+                    string nextAddress = config.Address;
+                    for (int i = 1; i < table.Rows.Count; i++)
+                    {
+
+                        nextAddress = beginAddress;
+
+                        for (int j = 0; j < table.Columns.Count; j++)
+                        {
+
+                            var value = table.Rows[i][j];
+                            Type type = value.GetType(); //不同的类型做不同的处理，防止公式无法计算字符串
+                            if (type == typeof(int))
+                                dic.Add(nextAddress, value.ToInt());
+                            else if (type == typeof(float))
+                                dic.Add(nextAddress, value.ToDecimal());
+                            else if (type == typeof(decimal))
+                                dic.Add(nextAddress, value.ToDecimal());
+                            else if (type == typeof(DateTime))
+                                dic.Add(nextAddress, value.ToDateTime());
+                            else
+                                dic.Add(nextAddress, value.ToString());
+                            //下一列地址 （字母加1，数字不变）
+                            nextAddress = ExcelAddressCommon.NextColumnAddress(nextAddress);
+                        }
+
+                        //每回换行时，让开始地址变成下一行的坐标（开始字母不变，数字加1）
+                        beginAddress = ExcelAddressCommon.NextRowAddress(beginAddress);
+                    }
+
+                }
+                else if (config.ContentType == 3)
+                {
+                    var value = config.DbType == 0 ? (await _sqlserver.GetValueAsync(config.Content, startTime, endTime)) : (await _mysql.GetValueAsync(config.Content, startTime, endTime));
+                    dic.Add(config.Address, value.ToString());
+                }
+                else if (config.ContentType == 4)
+                {
+                    dic.Add(config.Address, new MyFormula(config.Content));
+                }
+            }
+
+            return dic;
+        }
