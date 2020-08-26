@@ -1,0 +1,187 @@
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Text;
+using System.Text.RegularExpressions;
+
+namespace DataTools.Common
+{
+
+    /// <summary>
+    /// Excel地址公共帮助类（位置改变）
+    /// </summary>
+    public static class ExcelAddressCommon
+    {
+        /// <summary>
+        /// 下一列
+        /// </summary>
+        /// <param name="address"></param>
+        /// <returns></returns>
+        public static string NextColumnAddress(string address)
+        {
+            var letters = ExtractLetters(address).ToCharArray();
+            var numbers = ExtractNumbers(address);
+
+            letters = NextSingleLetter(letters, letters.Length - 1);
+            return new string(letters) + numbers.ToString();
+        }
+
+        /// <summary>
+        /// 下一行
+        /// </summary>
+        /// <param name="address"></param>
+        /// <returns></returns>
+        public static string NextRowAddress(string address)
+        {
+            var letters = ExtractLetters(address);
+            var numbers = ExtractNumbers(address);
+            return letters + (numbers + 1).ToString();
+        }
+
+        /// <summary>
+        /// 判断俩个字母是否相等
+        /// </summary>
+        /// <param name="letter1">字母1</param>
+        /// <param name="letter2">字母2</param>
+        /// <returns></returns>
+        public static bool IsLettersEqual(string letter1,string letter2)
+        {
+            return string.Compare(letter1.ToUpper(),letter2.ToUpper())==0;
+        }
+
+
+        /// <summary>
+        /// 下一列字母（二次修改）
+        /// </summary>
+        /// <param name="list">前一个字母字符串转字符数组</param>
+        /// <param name="index">0始终为0</param>
+        public static char[] NextSingleLetter(char[] list, int index=0)
+        {
+            char[] nextLetters = new char[2];
+            if (list.Length == 1)
+            {
+
+                if (list[0].ToString().ToUpper() == "Z")
+                {
+                    nextLetters[0] = 'A';
+                    nextLetters[1] = 'A';
+                    return nextLetters;
+                }
+                else
+                {
+                    nextLetters[0] = Convert.ToChar(list[index] + 1);
+                    return new char[] { nextLetters[0] };
+                }
+             }
+            else if (list.Length == 2)
+            {
+                if (list[1].ToString().ToUpper() == "Z")
+                {
+                    nextLetters[0] = Convert.ToChar(list[0] + 1);
+                    nextLetters[1] = 'A';
+                }
+                else
+                {
+                    nextLetters[0] = list[0];
+                    nextLetters[1] = Convert.ToChar(list[1] + 1);
+                }
+
+              
+            }
+
+            return nextLetters;
+
+        }
+
+
+        ///// <summary>
+        ///// 下一列字母
+        ///// </summary>
+        ///// <param name="list"></param>
+        ///// <param name="index"></param>
+        //public static char[] NextSingleLetter(char[] list, int index)
+        //{
+        //    if (index == -1)
+        //    {
+        //        var len = list.Length + 1;
+        //        list = new char[len];
+        //        for (int i = 0; i <= len - 1; i++)
+        //        {
+        //            list[i] = 'A';
+        //        }
+        //    }
+        //    else if (index >= 0)
+        //    {
+        //        if (list[index].ToString().ToUpper() == "Z")
+        //        {
+        //            list[index] = 'A';//当前字母置为A
+        //            //上一个字母+1
+        //            list = NextSingleLetter(list, index - 1);
+        //        }
+        //        else
+        //        {
+        //            //当前字母+1
+        //            list[index] = Convert.ToChar(Convert.ToInt16(list[index]) + 1);
+        //        }
+        //    }
+
+        //    return list;
+        //}
+
+        /// <summary>
+        /// 提取数字
+        /// </summary>
+        /// <param name="str"></param>
+        /// <param name="opt"></param>
+        /// <returns></returns>
+        public static int ExtractNumbers(string str, int opt = 0)
+        {
+            try
+            {
+                string s = Regex.Replace(str, @"[^0-9]+", "");
+                return Convert.ToInt32(s);
+            }
+            catch (Exception)
+            {
+                return opt;
+            }
+        }
+
+        /// <summary>
+        /// 提取字母
+        /// </summary>
+        /// <param name="str"></param>
+        /// <param name="opt"></param>
+        /// <returns></returns>
+        public static string ExtractLetters(string str, string opt = "")
+        {
+            try
+            {
+                return Regex.Replace(str, @"[\d]+", "");
+            }
+            catch (Exception)
+            {
+                return opt;
+            }
+        }
+
+        /// <summary>
+        /// 解析字符串公式计算
+        /// </summary>
+        /// <param name="expression"></param>
+        /// <param name="opt"></param>
+        /// <returns></returns>
+        public static decimal ComputeFormula(string expression, decimal opt = 0)
+        {
+            try
+            {
+                var result = new DataTable().Compute(expression, "");
+                return Convert.ToDecimal(result);
+            }
+            catch (Exception)
+            {
+                return opt;
+            }
+        }
+    }
+}
